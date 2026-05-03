@@ -247,9 +247,78 @@ external:
 
 ---
 
+## 九、调试记录：烧写后芯片不运行 (2026-05-03)
+
+### 问题 5: write_pack_size 错误 (256→4096)
+wlink 对 CH32H41X 默认 `write_pack_size = 4096`，我们写成了 256。
+导致大文件 (74KB) 产生 ~293 次 USB 传输而非 ~19 次，固件超时。
+**修复**: `program_flash()` 中 `write_pack_size` 改为 4096。
+
+### 问题 6: 烧写后芯片未复位
+`try_flash_via_probe()` 调用 `probe.target_reset()` 发送固件命令 0x0B，
+芯片实际未运行。wlink CLI 使用 DMI `ndmreset` 序列。
+**修复**: 新增 `WchLink::reset_and_run()`:
+```
+DMI write dmcontrol 0x00000001  // 清除 haltreq
+DMI write dmcontrol 0x00000003  // 触发 ndmreset
+DMI write dmcontrol 0x10000001  // 确认 havereset
+```
+
+### 问题 7: Rust GPIO 不闪烁 — CFGLR 配置错误
+CH32H417 GPIO CFGLR 每引脚 4 位 [CNF1:CNF0:MODE1:MODE0]。
+CNF=00=通用推挽输出，CNF=10=复用功能输出。
+我们写了 0xB (CNF=10, MODE=11)，正确值为 0x1 (CNF=00, MODE=01)。
+还需写入 SPEED 寄存器设置引脚速度。
+**修复**: CFGLR 写 0x1，SPEED 写 0x3。
+
+---
+
+## 十、验证结果汇总 (2026-05-03)
+
+### 探针与连接
+| 测试 | 结果 |
+|------|:--:|
+| `probe-rs list` 识别 WCH-Link | ✅ |
+| `probe-rs info --chip CH32H417` 显示芯片型号+ChipID | ✅ |
+| DMI 读取 SRAM | ✅ |
+
+### Flash 操作
+| 测试 | 结果 |
+|------|:--:|
+| 全片擦除 (480KB) | ✅ 9.55s |
+| 全片擦除验证 (首/1/4/中/3/4/尾) | ✅ 全部 0x39 |
+| 小文件 (94B) 烧写+验证 | ✅ 0.50s |
+| 大文件 (480KB) 烧写+验证 | ✅ 9.55s |
+| 跨区域写入验证 (首/中/尾) | ✅ |
+| 烧写后芯片复位启动 | ✅ |
+
+### Rust 嵌入式
+| 测试 | 结果 |
+|------|:--:|
+| riscv32imac 交叉编译 | ✅ |
+| ELF 烧写 | ✅ 0.49s |
+| GPIO PC2/PC3 交替闪烁 | ✅ 肉眼可见 |
+
+### 双核
+| 测试 | 结果 |
+|------|:--:|
+| Core 0 (V5F) 检测 | ✅ |
+| Core 1 (V3F) 检测 | ✅ |
+| Flash 操作时双核安全 | ✅ (固件内部处理) |
+
+### 编译状态
+| 项目 | 警告数 |
+|------|:--:|
+| `probe-rs` (lib) | 0 |
+| `probe-rs-tools` | 0 |
+| `ch32h417-blink` | 0 |
+
+---
+
 ## 六、参考
 
 - wlink: https://github.com/ch32-rs/wlink (CH32H417 chip_id `0xC6`, flash_op 618B)
 - WCH EVT: https://github.com/openwch/ch32h417
+- nanoCH32H417: https://github.com/wuxx/nanoCH32H417 (官方实验项目)
 - CH32V307 target: `probe-rs/targets/CH32V3_Series.yaml`
 - RISC-V Debug Spec: https://github.com/riscv/riscv-debug-spec
