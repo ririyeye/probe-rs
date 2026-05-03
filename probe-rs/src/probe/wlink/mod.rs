@@ -286,6 +286,31 @@ impl WchLink {
 
     // ── Probe-assisted Flash Operations ──────────────────
 
+    /// Returns the raw chip ID as detected by the firmware (e.g. 0x4170052D).
+    pub fn chip_id(&self) -> u32 {
+        self.chip_id
+    }
+
+    /// Returns the chip family name (e.g. "CH32H41X") as detected by the firmware.
+    pub fn chip_family_name(&self) -> &str {
+        match self.chip_family {
+            RiscvChip::CH32V103 => "CH32V103",
+            RiscvChip::CH57X => "CH57X",
+            RiscvChip::CH56X => "CH56X",
+            RiscvChip::CH32V20X => "CH32V20X",
+            RiscvChip::CH32V30X => "CH32V30X",
+            RiscvChip::CH58X => "CH58X",
+            RiscvChip::CH32V003 => "CH32V003",
+            RiscvChip::CH8571 => "CH8571",
+            RiscvChip::CH59X => "CH59X",
+            RiscvChip::CH643 => "CH643",
+            RiscvChip::CH32X035 => "CH32X035",
+            RiscvChip::CH32L103 => "CH32L103",
+            RiscvChip::CH641 => "CH641",
+            RiscvChip::CH32H41X => "CH32H41X (CH32H415/CH32H416/CH32H417)",
+        }
+    }
+
     /// Returns true if the currently attached chip supports probe-assisted
     /// flash operations (erase + program + verify via firmware commands).
     pub(crate) fn supports_probe_assisted_flash(&self) -> bool {

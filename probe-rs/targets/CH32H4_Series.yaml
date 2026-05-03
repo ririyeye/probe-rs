@@ -119,9 +119,15 @@ variants:
     - main
   flash_algorithms:
   - ch32h41x-flash-algo
+# NOTE: The flash algorithm below (Path A: DMI-based, loaded to target RAM)
+# does NOT work for CH32H41X. The target algorithm returns 0 (BSY=0, flash
+# controller never receives commands). Root cause unknown.
+# Flash operations instead go through the probe-assisted path
+# (WCH-Link firmware built-in commands, Path B) which has been verified.
+# This algorithm is kept for reference and future debugging.
 flash_algorithms:
 - name: ch32h41x-flash-algo
-  description: Flash algorithm for CH32H41x series (QingKe-V5F core)
+  description: Flash algorithm for CH32H41x series (QingKe-V5F core) -- EXPERIMENTAL, known broken
   default: true
   instructions: twUKIIPFJS6xzUERBsYixCbCKoSXAAAA54CgHR3ttyQCQIhItwUACKKVE2UlAIjIDwAwA8zIDwAwA4hIE2UFBIjIDwAwA5cAAADngIAaEeWMSPWZjMgPADADskAiRJJEQQGCgAVFgoBBEQbGIsQmwrcECiADxSQuMoQJxZcAAADngIAUBUV9FI1FI4GkLmNwtAi3JQJAN8Wt3jcGCiATBfXuCMIVZTcGZ0UTBRWADwAwA4jBN5XvzRMGNhITBbWaDwAwA9DBDwAwA8jBDwAwA9DRDwAwA8jRDwAwA4hJIWYTBgYIaY4Bxq1lTY0hqAFFEwYQA9DFtwUKIAVGDwAwAyOBxS6yQCJEkkRBAYKANwUKIBMFBSk3BgogEwYGKJMFUAqXAAAA54AgEAERBs4izCbKSshOxlLEroS3BQogg8UlLqXBMoQqiZcAAADngGAKMem3KQJAToYISrcFAAgumRNlFQAIyg8AMAMFSqHEiUUmhWPjtAAJRYNFBABjhkQBA0YUACIG0Y0qlImMIxC5AA8AMAOXAAAA54CgBQkJedURoAVF8kBiRNJEQkmySSJKBWGCgAFFToYMSvmZDMoPADADzbe3BQogA8UlLhnNAUU3JgJAFEohZxMHBwjZjhTKDwAwAyOBBS6CgAVFgoA3BgD2fRa3JQJADwAwA8hFk3YVAJHGBQZt+oVlTY2CgBN2BQEZ4gFFgoBBRtDFDwAwA4KAAaABEQbOIswAECMipP4jJLT+EwVE/oVFIyak/iMoxP4jGrT+EwXE/pcAAADngID9c3JjXG1haW4ucnMAAAByAgogCwAAAB8AAAABAAAAVGhpcyBicmFuY2ggY2FuIG9ubHkgYmUgcmVhY2hlZCBpZiB0aGUgaG9zdCBsaWJyYXJ5IHNlbnQgYW4gdW5rbm93biBmdW5jdGlvbiBjb2RlLgAA
   load_address: 0x200A0020

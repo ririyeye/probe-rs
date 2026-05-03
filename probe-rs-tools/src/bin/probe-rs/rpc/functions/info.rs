@@ -410,6 +410,20 @@ async fn try_read_riscv_info(
 ) -> Result<(), anyhow::Error> {
     if probe.has_riscv_interface() && protocol == WireProtocol::Jtag {
         tracing::debug!("Trying to show RISC-V chip information");
+
+        // Try to get chip details from probe (e.g. WCH-Link firmware)
+        if let Some(wlink) = probe.try_into::<probe_rs::probe::wlink::WchLink>() {
+            ctx.publish::<TargetInfoDataTopic>(
+                VarSeq::Seq2(0),
+                &InfoEvent::Message(format!(
+                    "Detected: {} (ChipID: {:08X}, WCH-Link firmware)",
+                    wlink.chip_family_name(),
+                    wlink.chip_id()
+                )),
+            )
+            .await?;
+        }
+
         let factory = probe.try_get_riscv_interface_builder()?;
 
         let mut state = factory.create_state();
