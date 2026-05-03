@@ -332,8 +332,6 @@ pub enum ProgramCommand {
     WriteFlash = 0x02,
     /// Write flash algorithm binary to probe internal buffer.
     WriteFlashOp = 0x05,
-    /// Prepare for flash programming (must be called first).
-    Prepare = 0x06,
     /// Acknowledge flash OP written (required after WriteFlashOp).
     AckFlashOpWritten = 0x07,
     /// End programming session.

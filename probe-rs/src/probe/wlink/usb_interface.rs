@@ -166,7 +166,7 @@ impl WchLinkUsbDevice {
         buf: &[u8],
         packet_size: usize,
     ) -> Result<(), DebugProbeError> {
-        let timeout = Duration::from_millis(200);
+        let timeout = Duration::from_secs(10);
 
         for chunk in buf.chunks(packet_size) {
             let mut padded = chunk.to_vec();
@@ -194,7 +194,7 @@ impl WchLinkUsbDevice {
         &mut self,
         len: usize,
     ) -> Result<Vec<u8>, DebugProbeError> {
-        let timeout = Duration::from_millis(200);
+        let timeout = Duration::from_secs(10);
         let mut buf = vec![0u8; len];
         let mut total = 0;
         while total < len {

@@ -387,10 +387,16 @@ impl WchLink {
 
         // Unprotect flash if needed
         if self.chip_family.support_flash_protect() {
-            match self.device.send_command(commands::CheckFlashProtection) {
+            let long_timeout = std::time::Duration::from_secs(10);
+            match self
+                .device
+                .send_command_with_timeout(commands::CheckFlashProtection, long_timeout)
+            {
                 Ok(0x01) => {
-                    self.device.send_command(commands::UnprotectFlash)?;
-                    self.device.send_command(commands::AttachChip)?;
+                    self.device
+                        .send_command_with_timeout(commands::UnprotectFlash, long_timeout)?;
+                    self.device
+                        .send_command_with_timeout(commands::AttachChip, long_timeout)?;
                 }
                 Ok(_) => {}
                 Err(e) => {
@@ -401,59 +407,69 @@ impl WchLink {
 
         let data_packet_size: usize = 256; // CH32H41x packet size
         let write_pack_size: usize = 256;
+        let timeout = std::time::Duration::from_secs(10);
 
-        // Step 1: Prepare
-        self.device
-            .send_command(commands::FlashProgram::new(commands::ProgramCommand::Prepare))?;
+        // Step 1: Set write memory region (wlink does NOT send Prepare for CH32H41X)
+        self.device.send_command_with_timeout(
+            commands::FlashSetWriteRegion {
+                start_addr: address,
+                len: data.len() as u32,
+            },
+            timeout,
+        )?;
 
-        // Step 2: Set write memory region
-        self.device.send_command(commands::FlashSetWriteRegion {
-            start_addr: address,
-            len: data.len() as u32,
-        })?;
+        // Step 2: Write flash OP (algorithm binary)
+        self.device.send_command_with_timeout(
+            commands::FlashProgram::new(commands::ProgramCommand::WriteFlashOp),
+            timeout,
+        )?;
 
-        // Step 3: Write flash OP (algorithm binary)
-        self.device
-            .send_command(commands::FlashProgram::new(commands::ProgramCommand::WriteFlashOp))?;
-
-        // Step 4: Send flash algorithm binary via data endpoint
+        // Step 3: Send flash algorithm binary via data endpoint
         self.device
             .write_data_endpoint(Self::CH32H417_FLASH_OP, data_packet_size)?;
 
-        // Step 5: Acknowledge flash OP written
-        let ack = self.device.send_command(commands::FlashProgram::new(
-            commands::ProgramCommand::AckFlashOpWritten,
-        ))?;
-        tracing::debug!("Flash OP ack: {:#04x}", ack);
+        // Step 4: Acknowledge flash OP written
+        let ack = self.device.send_command_with_timeout(
+            commands::FlashProgram::new(commands::ProgramCommand::AckFlashOpWritten),
+            timeout,
+        )?;
+        if ack != 0x07 {
+            tracing::warn!("Unexpected Flash OP ack: {:#04x}", ack);
+        }
 
-        // Step 6: Start flash write
-        self.device
-            .send_command(commands::FlashProgram::new(commands::ProgramCommand::WriteFlash))?;
+        // Step 5: Start flash write
+        self.device.send_command_with_timeout(
+            commands::FlashProgram::new(commands::ProgramCommand::WriteFlash),
+            timeout,
+        )?;
 
-        // Step 7: Send data chunks via data endpoint
+        // Step 6: Send data chunks via data endpoint, reading status after each
         for chunk in data.chunks(write_pack_size) {
             self.device
                 .write_data_endpoint(chunk, data_packet_size)?;
 
-            // Read 4-byte status response from data endpoint
             let status = self.device.read_data_endpoint(4)?;
-            tracing::debug!("Flash write chunk status: {:02x?}", status);
-
-            // Status byte 3 should be 0x04 for success
             if status.len() >= 4 && status[3] != 0x04 {
-                tracing::warn!("Unexpected flash write status: {:02x?}", status);
+                return Err(DebugProbeError::Other(format!(
+                    "Flash write chunk failed: status {:02x?}",
+                    status
+                )));
             }
         }
 
-        // Step 8: End programming
-        self.device
-            .send_command(commands::FlashProgram::new(commands::ProgramCommand::End))?;
+        // Step 7: End programming
+        self.device.send_command_with_timeout(
+            commands::FlashProgram::new(commands::ProgramCommand::End),
+            timeout,
+        )?;
 
         tracing::info!("Flash programming completed.");
         Ok(())
     }
 
     /// Read flash memory contents via the WCH-Link firmware's read command.
+    /// The firmware returns data in big-endian word order; we convert to
+    /// little-endian and trim to the requested length.
     pub fn read_flash(&mut self, address: u32, len: u32) -> Result<Vec<u8>, DebugProbeError> {
         tracing::info!(
             "Reading {} bytes from 0x{:08X} via WCH-Link firmware...",
@@ -461,18 +477,36 @@ impl WchLink {
             address
         );
 
+        let timeout = std::time::Duration::from_secs(10);
+
+        // Align length to 4 bytes as required by the firmware
+        let read_len = if len % 4 == 0 { len } else { (len / 4 + 1) * 4 };
+
         // Set read memory region
-        self.device.send_command(commands::FlashSetReadRegion {
-            start_addr: address,
-            len,
-        })?;
+        self.device.send_command_with_timeout(
+            commands::FlashSetReadRegion {
+                start_addr: address,
+                len: read_len,
+            },
+            timeout,
+        )?;
 
         // Trigger read
-        self.device
-            .send_command(commands::FlashProgram::new(commands::ProgramCommand::ReadMemory))?;
+        self.device.send_command_with_timeout(
+            commands::FlashProgram::new(commands::ProgramCommand::ReadMemory),
+            timeout,
+        )?;
 
         // Read data back from the data endpoint
-        let data = self.device.read_data_endpoint(len as usize)?;
+        let mut data = self.device.read_data_endpoint(read_len as usize)?;
+
+        // Fix endian: firmware returns big-endian words, reverse each 4-byte chunk
+        for chunk in data.chunks_exact_mut(4) {
+            chunk.reverse();
+        }
+
+        // Trim to requested length
+        data.truncate(len as usize);
 
         tracing::info!("Flash read completed, got {} bytes.", data.len());
         Ok(data)
