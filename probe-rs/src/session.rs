@@ -871,8 +871,7 @@ impl Session {
             return Ok(false);
         }
 
-        // Probe-assisted flash only works when erase+program are both via probe.
-        // Check that the probe is a WCH-Link first.
+        // Probe-assisted flash only works for CH32H41X via WCH-Link.
         let ArchitectureInterface::Jtag(probe, _) = &mut self.interfaces else {
             return Ok(false);
         };
@@ -880,6 +879,16 @@ impl Session {
             let inner = probe.inner_mut();
             let any_ref: &dyn std::any::Any = inner;
             if any_ref.type_id() != std::any::TypeId::of::<crate::probe::wlink::WchLink>() {
+                return Ok(false);
+            }
+            let wlink = any_ref
+                .downcast_ref::<crate::probe::wlink::WchLink>()
+                .expect("TypeId matched but downcast failed");
+            if !wlink.supports_probe_assisted_flash() {
+                tracing::info!(
+                    "Probe-assisted flash not supported for this chip ({:?}), using normal path",
+                    wlink.chip_family
+                );
                 return Ok(false);
             }
         }

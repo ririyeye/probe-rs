@@ -199,7 +199,7 @@ pub struct WchLink {
     v_major: u8,
     v_minor: u8,
     /// Chip family
-    chip_family: RiscvChip,
+    pub(crate) chip_family: RiscvChip,
     /// Chip id to identify the target chip variant
     chip_id: u32,
     // Hack to support NOP after READ
@@ -285,6 +285,12 @@ impl WchLink {
     }
 
     // ── Probe-assisted Flash Operations ──────────────────
+
+    /// Returns true if the currently attached chip supports probe-assisted
+    /// flash operations (erase + program + verify via firmware commands).
+    pub(crate) fn supports_probe_assisted_flash(&self) -> bool {
+        matches!(self.chip_family, RiscvChip::CH32H41X)
+    }
 
     /// CH32H417 flash algorithm binary, taken from wlink flash_op::CH32H417.
     /// This 618-byte binary is sent to the WCH-Link probe firmware,
