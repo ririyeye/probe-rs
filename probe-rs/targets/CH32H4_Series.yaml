@@ -20,6 +20,12 @@ variants:
       boot: true
   - !Ram
     range:
+      start: 0x20000000
+      end: 0x20004000
+    cores:
+    - main
+  - !Ram
+    range:
       start: 0x200A0000
       end: 0x200C0000
     cores:
@@ -46,6 +52,12 @@ variants:
     - main
     access:
       boot: true
+  - !Ram
+    range:
+      start: 0x20000000
+      end: 0x20004000
+    cores:
+    - main
   - !Ram
     range:
       start: 0x200A0000
@@ -76,6 +88,12 @@ variants:
       boot: true
   - !Ram
     range:
+      start: 0x20000000
+      end: 0x20004000
+    cores:
+    - main
+  - !Ram
+    range:
       start: 0x200A0000
       end: 0x200C0000
     cores:
@@ -92,21 +110,21 @@ flash_algorithms:
 - name: ch32h41x-flash-algo
   description: Flash algorithm for CH32H41x series (QingKe-V5F core)
   default: true
-  instructions: QREGxiLEJsK3BQAgg8V1PY3NKoSXAAAA54BgIwXptyQCQMhUtwUACBMWNQAzBbQAY0MGAlIEHcgR6TcFACATBcU2lwAAAOeAoCMFRbJAIkSSREEBgoBOBBHIbfk3BQAgEwXFN5cAAADngIAhjEiT5SUAjMjIyIhIE2UFBIjIlwAAAOeAwBx58YxI9ZmMyH2/QREGxiLEJsK3BAAgA8V0PTKECcWXAAAA54DAFwVFfRSNRaOLpDxjerQCtwVnRTcmAkC3lu/Nk4U1EpOGtppMwlTCTNK3BQAgVNKji6U8AUWyQCJEkkRBAYKANwUAIBMFhTE3BgAgEwaGMJMFUAqXAAAA54AAGwERBs4izCbKSshOxq6EtwUAIIPFdT2JzTKENykCQIMlCQEhZhMGBgjxjZnJDUURoAVF8kBiRNJEQkmySQVhgoC3CQAIk3X1D6qZgc1OheOSCf43BQAgEwXFOJcAAADngMARSoYISsFlTY0IypcAAADngIANBcGTNWX/swWwQCkFbY1F+TcFACATBcU5lwAAAOeAoA6BRoFHNwUAgHEVs/WkADcG8AAFBrnFEwdEAPEVtpcDRRQAg0YEAINEJAADRDQAIgVVjZOGFwDCBGIERYxBjc6XiMOyh/0Xgc8DJckAk3QlAPX4k3QFAY1HOoTN3Im3CUU9v0qGCEq3BSAATY0IypcAAADngCAEBfXKhoxKQXZ9FvGNjMopv7cFACADxXU9Gc0BRTcmAkAUSpPmBggUyhRKIWfZjhTKo4sFPIKABUWCgDcG8AAFBrclAkB9FhHKyEWTdhUCgRaZxpN2BQH91oKABUWCgAFF0EUTZgYC0MWCgAGgQREGxiLEAAgqhjcFACATBcU6kwWwApcAAADngIAAQREGxiLEAAiGBYUFlwAAAOeAgAABEQbOIswAECMipP4jJLT+EwVE/oVFIyak/iMoxP4jGrT+EwXE/pcAAADngGD6c3JjXG1haW4ucnMA/AIAIAsAAAA2AAAAAQAAAFRoaXMgYnJhbmNoIGNhbiBvbmx5IGJlIHJlYWNoZWQgaWYgdGhlIGhvc3QgbGlicmFyeSBzZW50IGFuIHVua25vd24gZnVuY3Rpb24gY29kZS4AAPwCACALAAAAmAAAAD8AAAD8AgAgCwAAAJIAAAA/AAAA/AIAIAsAAAC0AAAANwAAAPwCACALAAAAugAAAEEAAABjYWxsZWQgYE9wdGlvbjo6dW53cmFwKClgIG9uIGEgYE5vbmVgIHZhbHVlAA==
-  load_address: 0x20000020
-  pc_init: 0x90
-  pc_uninit: 0x220
-  pc_program_page: 0x106
+  instructions: twUKIIPFJS6xzUERBsYixCbCKoSXAAAA54CgHR3ttyQCQIhItwUACKKVE2UlAIjIDwAwA8zIDwAwA4hIE2UFBIjIDwAwA5cAAADngIAaEeWMSPWZjMgPADADskAiRJJEQQGCgAVFgoBBEQbGIsQmwrcECiADxSQuMoQJxZcAAADngIAUBUV9FI1FI4GkLmNwtAi3JQJAN8Wt3jcGCiATBfXuCMIVZTcGZ0UTBRWADwAwA4jBN5XvzRMGNhITBbWaDwAwA9DBDwAwA8jBDwAwA9DRDwAwA8jRDwAwA4hJIWYTBgYIaY4Bxq1lTY0hqAFFEwYQA9DFtwUKIAVGDwAwAyOBxS6yQCJEkkRBAYKANwUKIBMFBSk3BgogEwYGKJMFUAqXAAAA54AgEAERBs4izCbKSshOxlLEroS3BQogg8UlLqXBMoQqiZcAAADngGAKMem3KQJAToYISrcFAAgumRNlFQAIyg8AMAMFSqHEiUUmhWPjtAAJRYNFBABjhkQBA0YUACIG0Y0qlImMIxC5AA8AMAOXAAAA54CgBQkJedURoAVF8kBiRNJEQkmySSJKBWGCgAFFToYMSvmZDMoPADADzbe3BQogA8UlLhnNAUU3JgJAFEohZxMHBwjZjhTKDwAwAyOBBS6CgAVFgoA3BgD2fRa3JQJADwAwA8hFk3YVAJHGBQZt+oVlTY2CgBN2BQEZ4gFFgoBBRtDFDwAwA4KAAaABEQbOIswAECMipP4jJLT+EwVE/oVFIyak/iMoxP4jGrT+EwXE/pcAAADngID9c3JjXG1haW4ucnMAAAByAgogCwAAAB8AAAABAAAAVGhpcyBicmFuY2ggY2FuIG9ubHkgYmUgcmVhY2hlZCBpZiB0aGUgaG9zdCBsaWJyYXJ5IHNlbnQgYW4gdW5rbm93biBmdW5jdGlvbiBjb2RlLgAA
+  load_address: 0x200A0020
+  pc_init: 0x68
+  pc_uninit: 0x1b2
+  pc_program_page: 0x118
   pc_erase_sector: 0x0
-  data_section_offset: 0x200003D8
+  data_section_offset: 0x200a02e4
   flash_properties:
     address_range:
       start: 0x08000000
       end: 0x08078000
     page_size: 0x100
-    erased_byte_value: 0xFF
-    program_page_timeout: 1000
-    erase_sector_timeout: 2000
+    erased_byte_value: 0x39
+    program_page_timeout: 5000
+    erase_sector_timeout: 10000
     sectors:
     - size: 0x1000
       address: 0x0

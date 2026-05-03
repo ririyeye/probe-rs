@@ -442,7 +442,19 @@ fn erase_impl(
 
     match request.command {
         EraseCommand::All => {
-            flashing::erase_all(&mut session, &mut progress, request.read_flasher_rtt)?
+            // Try probe-assisted erase first (e.g., WCH-Link firmware command)
+            match session.try_erase_flash_via_probe() {
+                Ok(true) => {
+                    tracing::info!("Chip erased via probe firmware command.");
+                }
+                Ok(false) => {
+                    flashing::erase_all(&mut session, &mut progress, request.read_flasher_rtt)?;
+                }
+                Err(e) => {
+                    tracing::warn!("Probe-assisted erase failed: {:?}, falling back to normal path", e);
+                    flashing::erase_all(&mut session, &mut progress, request.read_flasher_rtt)?;
+                }
+            }
         }
     }
 

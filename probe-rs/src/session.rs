@@ -801,6 +801,55 @@ impl Session {
         &self.target
     }
 
+    /// Try to erase flash using the probe's built-in flash commands.
+    /// Currently only supported for WCH-Link probes.
+    /// Returns Ok(true) if the probe handled the erase, Ok(false) if not.
+    pub fn try_erase_flash_via_probe(&mut self) -> Result<bool, Error> {
+        // Check if the connected probe is a WCH-Link and use its firmware flash commands.
+        let ArchitectureInterface::Jtag(probe, _) = &mut self.interfaces else {
+            return Ok(false);
+        };
+        let inner = probe.inner_mut();
+
+        // Check if the probe is a WCH-Link by comparing TypeId
+        {
+            let any_ref: &dyn std::any::Any = inner;
+            if any_ref.type_id() != std::any::TypeId::of::<crate::probe::wlink::WchLink>() {
+                return Ok(false);
+            }
+        }
+
+        // Downcast mutably to access WchLink's erase_flash method
+        let any_mut: &mut dyn std::any::Any = inner;
+        let wlink = any_mut
+            .downcast_mut::<crate::probe::wlink::WchLink>()
+            .expect("TypeId matched but downcast failed");
+        tracing::info!("Using WCH-Link firmware erase command");
+        wlink.erase_flash()?;
+        Ok(true)
+    }
+
+    /// Try to program flash using the probe's built-in flash commands.
+    /// Currently only supported for WCH-Link probes.
+    /// Returns Ok(true) if the probe handled the programming, Ok(false) if not.
+    pub fn try_program_flash_via_probe(
+        &mut self,
+        data: &[u8],
+        address: u32,
+    ) -> Result<bool, Error> {
+        use std::any::Any;
+        if let ArchitectureInterface::Jtag(probe, _) = &mut self.interfaces {
+            let inner: &mut dyn crate::probe::DebugProbe = probe.inner_mut();
+            let any: &mut dyn Any = inner;
+            if let Some(wlink) = any.downcast_mut::<crate::probe::wlink::WchLink>() {
+                tracing::info!("Using WCH-Link firmware program command");
+                wlink.program_flash(data, address)?;
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
     /// Configure the target and probe for serial wire view (SWV) tracing.
     pub fn setup_tracing(
         &mut self,

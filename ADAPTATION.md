@@ -2,86 +2,161 @@
 
 > 日期: 2026-05-03
 > 作者: wuxx
-> 目标芯片: WCH CH32H417 (QingKe-V5F RISC-V)
+> 目标芯片: WCH CH32H417 (QingKe-V5F + QingKe-V3F 双核 RISC-V)
+> 调试器: WCH-LinkE-CH32V305 RV 模式 (VID:1A86 PID:8010, fw v2.20)
 
-## 修改概要
+---
 
-### 1. wlink/probe 驱动 (`probe-rs/src/probe/wlink/mod.rs`)
+## 一、Flash 擦除方案选择
 
-添加 CH32H41x 芯片家族支持：
+### 方案 A: probe-rs 原生 Flash Algorithm（手动 DMI）
+probe-rs 标准流程：halt 核心 → 写算法到 SRAM → resume 执行 → 等 ebreak → 读返回值。
 
-```rust
-// RiscvChip 枚举新增
-CH32H41X = 0xC6,  // CH32H415/CH32H416/CH32H417
+**结果: 不可行。** 算法在目标上返回 0（假装成功），BSY 位始终为 0，说明 FLASH 控制器从未接收
+到擦除命令。MODEKEYR 解锁、ACTLR 配置、fence 指令均不生效。根本原因待查（可能涉及 V5F 
+FLASH 控制器的特殊访问时序或调试模式限制）。
 
-// try_from_u8 新增映射
-0xC6 => Some(RiscvChip::CH32H41X),
+### 方案 B: WCH-Link 固件内置 Flash 命令 ⭐ 采用
+发送专有 USB 命令给 WCH-Link 固件，由固件内部处理 Flash。与 wlink CLI 工具同协议。
 
-// support_flash_protect 新增
-| RiscvChip::CH32H41X
+**结果: 可工作。** 已验证端到端擦除成功。
+
+---
+
+## 二、已完成的修改
+
+### 2.1 `probe-rs/src/probe/wlink/commands.rs`
+
+**Bug 修复**:
+- `CommandId::ConfigChip` 从 `0x01` → `0x06`（原值 0x01 是 SetWriteMemoryRegion，
+  导致 CheckFlashProtection/UnprotectFlash 发到错误的命令 ID）
+
+**新增命令**:
+| 命令 | CMD | 用途 |
+|------|:---:|------|
+| `FlashProgram` | 0x02 | Flash 操作（Erase=0x01, Write=0x02, WriteFlashOp=0x05, Prepare=0x06, Ack=0x07, End=0x08） |
+| `FlashSetWriteRegion` | 0x01 | 设置烧写地址和长度 |
+| `FlashSetReadRegion` | 0x03 | 设置读取地址和长度 |
+
+**嵌入数据**:
+- `CH32H417_FLASH_OP`: 618 字节 Flash 算法二进制（来源: wlink `flash_op::CH32H417`）
+
+### 2.2 `probe-rs/src/probe/wlink/usb_interface.rs`
+
+- 新增数据端点支持：`DATA_ENDPOINT_OUT = 0x02` / `DATA_ENDPOINT_IN = 0x82`
+- 新增 `write_data_endpoint(buf, packet_size)` — 分块写数据端点
+- 新增 `read_data_endpoint(len)` — 读数据端点
+- 新增 `send_command_with_timeout(cmd, timeout)` — 带超时的命令发送（Flash 擦除需 ≥10s）
+
+### 2.3 `probe-rs/src/probe/wlink/mod.rs`
+
+- 嵌入 `CH32H417_FLASH_OP` 常量（618 字节 wlink 兼容二进制）
+- 新增 `erase_flash()` — 发送 EraseFlash 固件命令
+- 新增 `program_flash(data, address)` — 完整烧写序列（Prepare→SetRegion→WriteOp→Ack→Write→End）
+
+### 2.4 `probe-rs/src/probe.rs`
+
+- 新增 `Probe::inner_mut()` — `pub(crate)` 访问器，用于在 Session 层 downcast 到 WchLink
+
+### 2.5 `probe-rs/src/session.rs`
+
+- 新增 `try_erase_flash_via_probe()` — 检测 WCH-Link 探针，使用固件命令擦除
+- 新增 `try_program_flash_via_probe(data, address)` — 同上但用于烧写
+
+### 2.6 `probe-rs-tools/.../rpc/functions/flash.rs`
+
+- `erase_impl()` 修改：优先走 probe-assisted 路径，失败则回退到标准 Flash Algorithm 路径
+
+### 2.7 `probe-rs/targets/CH32H4_Series.yaml`
+
+- `erased_byte_value: 0xFF` → `0x39`（CH32H417 擦除值为 0x39，不是 0xFF！）
+- 更新了 `instructions`、`pc_uninit`、`pc_program_page`、`data_section_offset`
+
+### 2.8 `flash-algorithms/ch32h417/`（实验性，未采用）
+
+- 添加了 ACTLR + KEYR + MODEKEYR 完整解锁序列
+- 添加了 CTLR LOCK/FLOCK 验证
+- 添加了 SRAM 哨兵写入验证
+- `empty_value: 0xFF` → `0x39`
+- **结论**: 手动 Flash Algorithm 方式不适用于 CH32H417，保留代码供后续研究
+
+---
+
+## 三、CH32H417 关键参数
+
+| 参数 | 值 | 说明 |
+|------|:--|------|
+| Flash 基地址 | 0x08000000 | |
+| Flash 大小 | 0x78000 (480KB) | 单 Bank 模式 |
+| Flash 擦除值 | **0x39** | ⚠️ 不是 0xFF！ |
+| 页大小 | 0x100 (256B) | |
+| 扇区大小 | 0x1000 (4KB) | |
+| ACTLR 偏移 | 0x00 | 导致所有寄存器 +4 |
+| KEYR 偏移 | 0x04 | |
+| CTLR 偏移 | 0x10 | |
+| MODEKEYR 偏移 | 0x24 | |
+| 擦除超时 | **10 秒** | USB bulk 超时必须 ≥此值 |
+| 双核架构 | V5F (hart 0) + V3F (hart 1) | haltsum0=0x3 |
+| WCH-Link fw | v2.20 (v40) | WCH-LinkE-CH32V305 |
+
+---
+
+## 四、已验证通过的测试
+
+```
+# 1. 探针识别
+probe-rs list                                    ✅ WCH-Link -- 1a86:8010
+
+# 2. 芯片连接
+probe-rs info --chip CH32H417                    ✅ CH32H41X detected
+
+# 3. DMI 读取
+probe-rs read --chip CH32H417 b32 0x200A0000 4   ✅ SRAM 读写正常
+
+# 4. Flash 擦除（端到端）
+wlink flash CoreMark.bin                         ✅ 烧写成功
+probe-rs read b32 0x08000000 2                   ✅ 读到 0x5180806f
+probe-rs erase --chip CH32H417                   ✅ 擦除成功
+probe-rs read b32 0x08000000 2                   ✅ 读到 0xe339e339 (0x39模式)
 ```
 
-chip_id `0xC6` 来源: wlink 库 (`ch32-rs/wlink/src/lib.rs`)
+---
 
-### 2. Target 描述 (`probe-rs/targets/CH32H4_Series.yaml`)
+## 五、后续计划
 
-包含:
-- CH32H417/CH32H415/CH32H416 三个变体
-- V5F 核心内存映射 (Flash 480K + ITCM 128K + DTCM 255K)
-- Flash algorithm (952 bytes PrgCode)
+### P0: Flash 烧写端到端测试
+- [ ] 验证 `program_flash()` 方法
+- [ ] 测试 `probe-rs download --chip CH32H417 firmware.hex`
+- [ ] 若 download 走 FlashLoader 路径（不走 probe-assisted），需要修改 RPC `flash_impl`
 
-Flash algorithm 函数偏移:
+### P1: 修复 session cleanup 错误
+- [ ] erase 成功后 session drop 时尝试 halt 核心报 `Failed to reset and halt`
+- [ ] 方案：在 probe-assisted 路径成功后标记 session 状态，跳过清理时的 halt 操作
 
-| 函数 | 偏移 | 说明 |
-|------|------|------|
-| pc_erase_sector | 0x0 | EraseSector |
-| pc_init | 0x90 | Init (解锁 FLASH + MODEKEYR) |
-| pc_program_page | 0x106 | ProgramPage (256B 页编程) |
-| pc_uninit | 0x220 | UnInit (锁定 FLASH) |
+### P1: Flash 验证/回读
+- [ ] 实现 `try_verify_flash_via_probe()` — 使用 `ReadMemory` (CMD 0x02/0x0C)
+- [ ] 对比 wlink 的 `read_memory()` 实现
 
-### 3. Flash Algorithm (`flash-algorithms/ch32h417/`)
+### P2: 代码清理
+- [ ] 移除 `FlashSetReadRegion` / `ReadMemory` 死代码（或补充实现）
+- [ ] 移除 eprintln! 调试输出
+- [ ] 清理 `session.rs` 和 `mod.rs` 中的未使用 import
 
-独立 crate，使用裸指针直接操作 FLASH 寄存器。
+### P2: 双核支持
+- [ ] Target YAML 添加 V3F 协处理器核心定义
+- [ ] 验证 V3F halt/resume 操作
+- [ ] Flash 操作时确保两个核心都处于安全状态
 
-**关键发现**: CH32H417 FLASH 控制器有 ACTLR 寄存器(offset 0x00)，
-导致所有寄存器偏移比 CH32V30x 多 4 字节。不能直接复用 ch32v3 PAC。
+### P3: 手动 Flash Algorithm 根因分析
+- [ ] 研究 V5F 的 fence 指令行为差异
+- [ ] 研究调试模式下 FLASH 控制器访问限制
+- [ ] 对比 wlink 固件的 Flash 操作时序
 
-| Register | CH32V30x | CH32H41x |
-|----------|:--------:|:--------:|
-| KEYR     | 0x00     | 0x04     |
-| STATR    | 0x08     | 0x0C     |
-| CTLR     | 0x0C     | 0x10     |
-| ADDR     | 0x10     | 0x14     |
-| MODEKEYR | 0x20     | 0x24     |
+---
 
-FLASH 控制器基地址相同: `0x40022000`
+## 六、参考
 
-## 调试流程
-
-```bash
-# 编译 probe-rs
-cd probe-rs
-cargo build --release
-
-# 烧录
-probe-rs run --chip CH32H417 ./firmware.elf
-
-# 调试
-probe-rs attach --chip CH32H417
-
-# 擦除
-probe-rs erase --chip CH32H417
-```
-
-## 注意事项
-
-1. WCH-Link 需要切换到 RV 模式 (VID:PID `1a86:8010`)
-2. V3F 小核暂不支持 (target 描述仅包含 V5F)
-3. Flash algorithm 尚未在真实硬件验证
-4. 960K 双 Bank 模式暂未实现 sector 描述
-
-## 参考
-
-- wlink: https://github.com/ch32-rs/wlink (CH32H417 chip_id 和 flash_op 来源)
+- wlink: https://github.com/ch32-rs/wlink (CH32H417 chip_id `0xC6`, flash_op 618B)
 - WCH EVT: https://github.com/openwch/ch32h417
 - CH32V307 target: `probe-rs/targets/CH32V3_Series.yaml`
+- RISC-V Debug Spec: https://github.com/riscv/riscv-debug-spec

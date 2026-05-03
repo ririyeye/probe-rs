@@ -463,12 +463,34 @@ impl FlashAlgorithm {
     ) -> Result<FlashAlgorithm, FlashError> {
         // Find a RAM region from which we can run the algo.
         let mm = &target.memory_map;
+        tracing::debug!(
+            "Looking for RAM suitable for algo '{}' with load_address={:?}",
+            algo.name,
+            algo.load_address
+        );
+        for region in mm.iter() {
+            tracing::debug!(
+                "  memory region: {:?} (cores={:?})",
+                region,
+                region.cores()
+            );
+        }
 
         let ram_regions = mm
             .iter()
             .filter_map(MemoryRegion::as_ram_region)
             .filter(|ram| ram.accessible_by(core_name))
             .merge_consecutive();
+
+        for ram in ram_regions.clone() {
+            tracing::debug!(
+                "  RAM region: {:x?} size={} executable={} core={}",
+                ram.range,
+                ram.range.end - ram.range.start,
+                ram.is_executable(),
+                core_name,
+            );
+        }
 
         let ram = ram_regions
             .clone()
