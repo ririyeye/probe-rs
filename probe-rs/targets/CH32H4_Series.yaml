@@ -1,0 +1,114 @@
+# CH32H4 Series Target Description for probe-rs
+# WCH CH32H415/CH32H416/CH32H417 (QingKe-V5F + QingKe-V3F)
+# Flash algorithm: compiled from ch32-rs/flash-algorithms/ch32h417
+
+name: CH32H4 Series
+variants:
+- name: CH32H417
+  cores:
+  - name: main
+    type: riscv
+    core_access_options: !Riscv
+  memory_map:
+  - !Nvm
+    range:
+      start: 0x08000000
+      end: 0x08078000
+    cores:
+    - main
+    access:
+      boot: true
+  - !Ram
+    range:
+      start: 0x200A0000
+      end: 0x200C0000
+    cores:
+    - main
+  - !Ram
+    range:
+      start: 0x200C0400
+      end: 0x20100000
+    cores:
+    - main
+  flash_algorithms:
+  - ch32h41x-flash-algo
+- name: CH32H415
+  cores:
+  - name: main
+    type: riscv
+    core_access_options: !Riscv
+  memory_map:
+  - !Nvm
+    range:
+      start: 0x08000000
+      end: 0x08078000
+    cores:
+    - main
+    access:
+      boot: true
+  - !Ram
+    range:
+      start: 0x200A0000
+      end: 0x200C0000
+    cores:
+    - main
+  - !Ram
+    range:
+      start: 0x200C0400
+      end: 0x20100000
+    cores:
+    - main
+  flash_algorithms:
+  - ch32h41x-flash-algo
+- name: CH32H416
+  cores:
+  - name: main
+    type: riscv
+    core_access_options: !Riscv
+  memory_map:
+  - !Nvm
+    range:
+      start: 0x08000000
+      end: 0x08078000
+    cores:
+    - main
+    access:
+      boot: true
+  - !Ram
+    range:
+      start: 0x200A0000
+      end: 0x200C0000
+    cores:
+    - main
+  - !Ram
+    range:
+      start: 0x200C0400
+      end: 0x20100000
+    cores:
+    - main
+  flash_algorithms:
+  - ch32h41x-flash-algo
+flash_algorithms:
+- name: ch32h41x-flash-algo
+  description: Flash algorithm for CH32H41x series (QingKe-V5F core)
+  default: true
+  instructions: QREGxiLEJsK3BQAgg8V1PY3NKoSXAAAA54BgIwXptyQCQMhUtwUACBMWNQAzBbQAY0MGAlIEHcgR6TcFACATBcU2lwAAAOeAoCMFRbJAIkSSREEBgoBOBBHIbfk3BQAgEwXFN5cAAADngIAhjEiT5SUAjMjIyIhIE2UFBIjIlwAAAOeAwBx58YxI9ZmMyH2/QREGxiLEJsK3BAAgA8V0PTKECcWXAAAA54DAFwVFfRSNRaOLpDxjerQCtwVnRTcmAkC3lu/Nk4U1EpOGtppMwlTCTNK3BQAgVNKji6U8AUWyQCJEkkRBAYKANwUAIBMFhTE3BgAgEwaGMJMFUAqXAAAA54AAGwERBs4izCbKSshOxq6EtwUAIIPFdT2JzTKENykCQIMlCQEhZhMGBgjxjZnJDUURoAVF8kBiRNJEQkmySQVhgoC3CQAIk3X1D6qZgc1OheOSCf43BQAgEwXFOJcAAADngMARSoYISsFlTY0IypcAAADngIANBcGTNWX/swWwQCkFbY1F+TcFACATBcU5lwAAAOeAoA6BRoFHNwUAgHEVs/WkADcG8AAFBrnFEwdEAPEVtpcDRRQAg0YEAINEJAADRDQAIgVVjZOGFwDCBGIERYxBjc6XiMOyh/0Xgc8DJckAk3QlAPX4k3QFAY1HOoTN3Im3CUU9v0qGCEq3BSAATY0IypcAAADngCAEBfXKhoxKQXZ9FvGNjMopv7cFACADxXU9Gc0BRTcmAkAUSpPmBggUyhRKIWfZjhTKo4sFPIKABUWCgDcG8AAFBrclAkB9FhHKyEWTdhUCgRaZxpN2BQH91oKABUWCgAFF0EUTZgYC0MWCgAGgQREGxiLEAAgqhjcFACATBcU6kwWwApcAAADngIAAQREGxiLEAAiGBYUFlwAAAOeAgAABEQbOIswAECMipP4jJLT+EwVE/oVFIyak/iMoxP4jGrT+EwXE/pcAAADngGD6c3JjXG1haW4ucnMA/AIAIAsAAAA2AAAAAQAAAFRoaXMgYnJhbmNoIGNhbiBvbmx5IGJlIHJlYWNoZWQgaWYgdGhlIGhvc3QgbGlicmFyeSBzZW50IGFuIHVua25vd24gZnVuY3Rpb24gY29kZS4AAPwCACALAAAAmAAAAD8AAAD8AgAgCwAAAJIAAAA/AAAA/AIAIAsAAAC0AAAANwAAAPwCACALAAAAugAAAEEAAABjYWxsZWQgYE9wdGlvbjo6dW53cmFwKClgIG9uIGEgYE5vbmVgIHZhbHVlAA==
+  load_address: 0x20000020
+  pc_init: 0x90
+  pc_uninit: 0x220
+  pc_program_page: 0x106
+  pc_erase_sector: 0x0
+  data_section_offset: 0x200003D8
+  flash_properties:
+    address_range:
+      start: 0x08000000
+      end: 0x08078000
+    page_size: 0x100
+    erased_byte_value: 0xFF
+    program_page_timeout: 1000
+    erase_sector_timeout: 2000
+    sectors:
+    - size: 0x1000
+      address: 0x0
+  cores:
+  - main

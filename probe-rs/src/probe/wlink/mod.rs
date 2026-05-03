@@ -114,6 +114,8 @@ pub enum RiscvChip {
     CH32L103 = 0x0E, // 14
     /// CH641 Qingke-V2A series, USB-PD, fallback as CH32V003
     CH641 = 0x49,
+    /// CH32H415/CH32H416/CH32H417 Qingke-V5F+Qingke-V3F series
+    CH32H41X = 0xC6,
 }
 
 impl RiscvChip {
@@ -132,6 +134,7 @@ impl RiscvChip {
             0x0D => Some(RiscvChip::CH32X035),
             0x0E => Some(RiscvChip::CH32L103),
             0x49 => Some(RiscvChip::CH641),
+            0xC6 => Some(RiscvChip::CH32H41X),
             _ => None,
         }
     }
@@ -147,6 +150,7 @@ impl RiscvChip {
                 | RiscvChip::CH32L103
                 | RiscvChip::CH32X035
                 | RiscvChip::CH641
+                | RiscvChip::CH32H41X
         )
     }
 }
