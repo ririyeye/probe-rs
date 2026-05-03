@@ -452,6 +452,31 @@ impl WchLink {
         tracing::info!("Flash programming completed.");
         Ok(())
     }
+
+    /// Read flash memory contents via the WCH-Link firmware's read command.
+    pub fn read_flash(&mut self, address: u32, len: u32) -> Result<Vec<u8>, DebugProbeError> {
+        tracing::info!(
+            "Reading {} bytes from 0x{:08X} via WCH-Link firmware...",
+            len,
+            address
+        );
+
+        // Set read memory region
+        self.device.send_command(commands::FlashSetReadRegion {
+            start_addr: address,
+            len,
+        })?;
+
+        // Trigger read
+        self.device
+            .send_command(commands::FlashProgram::new(commands::ProgramCommand::ReadMemory))?;
+
+        // Read data back from the data endpoint
+        let data = self.device.read_data_endpoint(len as usize)?;
+
+        tracing::info!("Flash read completed, got {} bytes.", data.len());
+        Ok(data)
+    }
 }
 
 impl DebugProbe for WchLink {

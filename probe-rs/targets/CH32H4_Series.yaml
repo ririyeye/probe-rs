@@ -9,6 +9,13 @@ variants:
   - name: main
     type: riscv
     core_access_options: !Riscv
+      hart_id: 0
+      jtag_tap: 0
+  - name: v3f_coprocessor
+    type: riscv
+    core_access_options: !Riscv
+      hart_id: 1
+      jtag_tap: 1
   memory_map:
   - !Nvm
     range:
@@ -30,6 +37,12 @@ variants:
       end: 0x200C0000
     cores:
     - main
+  - !Ram
+    range:
+      start: 0x200C0000
+      end: 0x200C0400
+    cores:
+    - v3f_coprocessor
   - !Ram
     range:
       start: 0x200C0400
