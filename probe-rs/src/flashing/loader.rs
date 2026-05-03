@@ -729,7 +729,6 @@ impl FlashLoader {
                                 }
                                 Ok(false) => {
                                     // Probe doesn't support standalone verify, skip.
-                                    // The write sequence already does per-chunk status checks.
                                 }
                                 Err(e) => {
                                     tracing::warn!("Probe-assisted verify failed: {:?}", e);

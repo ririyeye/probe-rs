@@ -912,6 +912,14 @@ impl Session {
             self.try_program_flash_via_probe(data, address)?;
         }
 
+        // Reset the chip so it boots the newly flashed firmware
+        tracing::info!("Resetting chip after probe-assisted flash...");
+        if let ArchitectureInterface::Jtag(probe, _) = &mut self.interfaces {
+            if let Err(e) = probe.target_reset() {
+                tracing::warn!("Chip reset after flash failed: {:?}", e);
+            }
+        }
+
         Ok(true)
     }
 

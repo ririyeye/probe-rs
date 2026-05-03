@@ -436,8 +436,8 @@ impl WchLink {
             }
         }
 
-        let data_packet_size: usize = 256; // CH32H41x packet size
-        let write_pack_size: usize = 256;
+        let data_packet_size: usize = 256; // CH32H41x data packet size
+        let write_pack_size: usize = 4096; // CH32H41x write pack size (wlink default)
         let timeout = std::time::Duration::from_secs(10);
 
         // Step 1: Set write memory region (wlink does NOT send Prepare for CH32H41X)
