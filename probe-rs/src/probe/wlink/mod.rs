@@ -498,6 +498,18 @@ impl WchLink {
         Ok(())
     }
 
+    /// Reset the target via DMI ndmreset and let it run.
+    /// This is the proper reset sequence for RISC-V targets after flashing.
+    pub fn reset_and_run(&mut self) -> Result<(), DebugProbeError> {
+        // Clear haltreq, keep dmactive
+        self.dmi_op_write(0x10, 0x00000001)?;
+        // Trigger ndmreset (core reset via debug module)
+        self.dmi_op_write(0x10, 0x00000003)?;
+        // Acknowledge havereset, keep dmactive
+        self.dmi_op_write(0x10, 0x10000001)?;
+        Ok(())
+    }
+
     /// Read flash memory contents via the WCH-Link firmware's read command.
     /// The firmware returns data in big-endian word order; we convert to
     /// little-endian and trim to the requested length.

@@ -912,11 +912,18 @@ impl Session {
             self.try_program_flash_via_probe(data, address)?;
         }
 
-        // Reset the chip so it boots the newly flashed firmware
-        tracing::info!("Resetting chip after probe-assisted flash...");
-        if let ArchitectureInterface::Jtag(probe, _) = &mut self.interfaces {
-            if let Err(e) = probe.target_reset() {
-                tracing::warn!("Chip reset after flash failed: {:?}", e);
+        // Reset chip via DMI ndmreset so it boots the new firmware.
+        // probe.target_reset() sends a firmware-level reset which may not
+        // properly restart the RISC-V core; we need a DM-level reset.
+        tracing::info!("Resetting chip via DMI ndmreset after probe-assisted flash...");
+        {
+            let ArchitectureInterface::Jtag(probe, _) = &mut self.interfaces else {
+                return Ok(true);
+            };
+            let inner = probe.inner_mut();
+            let any: &mut dyn std::any::Any = inner;
+            if let Some(wlink) = any.downcast_mut::<crate::probe::wlink::WchLink>() {
+                wlink.reset_and_run()?;
             }
         }
 
