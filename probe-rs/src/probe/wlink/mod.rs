@@ -500,26 +500,28 @@ impl WchLink {
 
     /// Reset the target via DMI ndmreset and let it run.
     /// This is the proper reset sequence for RISC-V targets after flashing.
-    pub fn reset_and_run(&mut self) -> Result<(), DebugProbeError> {
-        // Select all harts (hasel=1, hartsel=all-ones) so ndmreset resets
-        // the entire chip regardless of which hart is the boot core.
-        // CH32H417 has V5F at hart 1, V3F at hart 0 — resetting only
-        // hart 0 would leave the boot core stuck.
-        let all_harts = 0x04000000 | 0x03FF0000; // hasel=1, hartsel=0x3FF
+    ///
+    /// `hart_id` is the hart index of the **boot core** (typically the main
+    /// core that loads the coprocessor).  ndmreset is issued only to that
+    /// hart; on CH32H41X the DM does not support `hasel`, so `hasel=1`
+    /// writes are ignored and `hartsel` is always interpreted as a direct
+    /// hart index.
+    pub fn reset_and_run(&mut self, hart_id: u32) -> Result<(), DebugProbeError> {
+        let hartsel = (hart_id & 0x3FF) << 16;
 
         // Clear haltreq, keep dmactive
-        self.dmi_op_write(0x10, 0x00000001 | all_harts)?;
+        self.dmi_op_write(0x10, 0x00000001 | hartsel)?;
         // Trigger ndmreset (core reset via debug module)
-        self.dmi_op_write(0x10, 0x00000003 | all_harts)?;
+        self.dmi_op_write(0x10, 0x00000003 | hartsel)?;
         // Hold reset for a few ms so it propagates through the chip
         std::thread::sleep(std::time::Duration::from_millis(10));
         // Release ndmreset, keep dmactive (core comes out of reset)
-        self.dmi_op_write(0x10, 0x00000001 | all_harts)?;
+        self.dmi_op_write(0x10, 0x00000001 | hartsel)?;
         // Give the debug module time to re-initialise after ndmreset.
         // Reading dmstatus too early results in DMI timeouts.
         std::thread::sleep(std::time::Duration::from_millis(50));
         // Acknowledge havereset
-        self.dmi_op_write(0x10, 0x10000001 | all_harts)?;
+        self.dmi_op_write(0x10, 0x10000001 | hartsel)?;
         Ok(())
     }
 

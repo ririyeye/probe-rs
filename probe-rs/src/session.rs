@@ -917,15 +917,31 @@ impl Session {
         // Reset chip via DMI ndmreset so it boots the new firmware.
         // probe.target_reset() sends a firmware-level reset which may not
         // properly restart the RISC-V core; we need a DM-level reset.
+        // We reset the first RISC-V core (the boot / main core) by its
+        // hart_id so V5F reboots and loads the coprocessor firmware.
         tracing::info!("Resetting chip via DMI ndmreset after probe-assisted flash...");
         {
             let ArchitectureInterface::Jtag(probe, _) = &mut self.interfaces else {
                 return Ok(true);
             };
+            // Find the hart_id of the first RISC-V core (boot core).
+            use probe_rs_target::CoreAccessOptions;
+            let hart_id = self
+                .target
+                .cores
+                .iter()
+                .find_map(|core| {
+                    if let CoreAccessOptions::Riscv(opts) = &core.core_access_options {
+                        opts.hart_id
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or(0);
             let inner = probe.inner_mut();
             let any: &mut dyn std::any::Any = inner;
             if let Some(wlink) = any.downcast_mut::<crate::probe::wlink::WchLink>() {
-                wlink.reset_and_run()?;
+                wlink.reset_and_run(hart_id)?;
             }
         }
 
