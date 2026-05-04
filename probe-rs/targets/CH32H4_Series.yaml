@@ -1,7 +1,3 @@
-# CH32H4 Series Target Description for probe-rs
-# WCH CH32H415/CH32H416/CH32H417 (QingKe-V5F + QingKe-V3F)
-# Flash algorithm: compiled from ch32-rs/flash-algorithms/ch32h417
-
 name: CH32H4 Series
 variants:
 - name: CH32H417
@@ -19,8 +15,8 @@ variants:
   memory_map:
   - !Nvm
     range:
-      start: 0x08000000
-      end: 0x08078000
+      start: 0x8000000
+      end: 0x8078000
     cores:
     - main
     access:
@@ -33,13 +29,13 @@ variants:
     - main
   - !Ram
     range:
-      start: 0x200A0000
-      end: 0x200C0000
+      start: 0x200a0000
+      end: 0x200c0000
     cores:
     - main
   - !Ram
     range:
-      start: 0x200C0000
+      start: 0x200c0000
       end: 0x20100000
     cores:
     - main
@@ -59,8 +55,8 @@ variants:
   memory_map:
   - !Nvm
     range:
-      start: 0x08000000
-      end: 0x08078000
+      start: 0x8000000
+      end: 0x8078000
     cores:
     - main
     access:
@@ -73,13 +69,13 @@ variants:
     - main
   - !Ram
     range:
-      start: 0x200A0000
-      end: 0x200C0000
+      start: 0x200a0000
+      end: 0x200c0000
     cores:
     - main
   - !Ram
     range:
-      start: 0x200C0400
+      start: 0x200c0400
       end: 0x20100000
     cores:
     - main
@@ -93,8 +89,8 @@ variants:
   memory_map:
   - !Nvm
     range:
-      start: 0x08000000
-      end: 0x08078000
+      start: 0x8000000
+      end: 0x8078000
     cores:
     - main
     access:
@@ -107,45 +103,39 @@ variants:
     - main
   - !Ram
     range:
-      start: 0x200A0000
-      end: 0x200C0000
+      start: 0x200a0000
+      end: 0x200c0000
     cores:
     - main
   - !Ram
     range:
-      start: 0x200C0400
+      start: 0x200c0400
       end: 0x20100000
     cores:
     - main
   flash_algorithms:
   - ch32h41x-flash-algo
-# NOTE: The flash algorithm below (Path A: DMI-based, loaded to target RAM)
-# does NOT work for CH32H41X. The target algorithm returns 0 (BSY=0, flash
-# controller never receives commands). Root cause unknown.
-# Flash operations instead go through the probe-assisted path
-# (WCH-Link firmware built-in commands, Path B) which has been verified.
-# This algorithm is kept for reference and future debugging.
 flash_algorithms:
 - name: ch32h41x-flash-algo
-  description: Flash algorithm for CH32H41x series (QingKe-V5F core) -- EXPERIMENTAL, known broken
+  description: Flash algorithm for CH32H41x series (QingKe-V3F core) -- EXPERIMENTAL, testing V3F theory
   default: true
   instructions: twUKIIPFJS6xzUERBsYixCbCKoSXAAAA54CgHR3ttyQCQIhItwUACKKVE2UlAIjIDwAwA8zIDwAwA4hIE2UFBIjIDwAwA5cAAADngIAaEeWMSPWZjMgPADADskAiRJJEQQGCgAVFgoBBEQbGIsQmwrcECiADxSQuMoQJxZcAAADngIAUBUV9FI1FI4GkLmNwtAi3JQJAN8Wt3jcGCiATBfXuCMIVZTcGZ0UTBRWADwAwA4jBN5XvzRMGNhITBbWaDwAwA9DBDwAwA8jBDwAwA9DRDwAwA8jRDwAwA4hJIWYTBgYIaY4Bxq1lTY0hqAFFEwYQA9DFtwUKIAVGDwAwAyOBxS6yQCJEkkRBAYKANwUKIBMFBSk3BgogEwYGKJMFUAqXAAAA54AgEAERBs4izCbKSshOxlLEroS3BQogg8UlLqXBMoQqiZcAAADngGAKMem3KQJAToYISrcFAAgumRNlFQAIyg8AMAMFSqHEiUUmhWPjtAAJRYNFBABjhkQBA0YUACIG0Y0qlImMIxC5AA8AMAOXAAAA54CgBQkJedURoAVF8kBiRNJEQkmySSJKBWGCgAFFToYMSvmZDMoPADADzbe3BQogA8UlLhnNAUU3JgJAFEohZxMHBwjZjhTKDwAwAyOBBS6CgAVFgoA3BgD2fRa3JQJADwAwA8hFk3YVAJHGBQZt+oVlTY2CgBN2BQEZ4gFFgoBBRtDFDwAwA4KAAaABEQbOIswAECMipP4jJLT+EwVE/oVFIyak/iMoxP4jGrT+EwXE/pcAAADngID9c3JjXG1haW4ucnMAAAByAgogCwAAAB8AAAABAAAAVGhpcyBicmFuY2ggY2FuIG9ubHkgYmUgcmVhY2hlZCBpZiB0aGUgaG9zdCBsaWJyYXJ5IHNlbnQgYW4gdW5rbm93biBmdW5jdGlvbiBjb2RlLgAA
-  load_address: 0x200A0020
+  load_address: 0x200a0020
   pc_init: 0x68
-  pc_uninit: 0x1b2
-  pc_program_page: 0x118
+  pc_uninit: 0x1c4
+  pc_program_page: 0x12a
   pc_erase_sector: 0x0
   data_section_offset: 0x200a02e4
   flash_properties:
     address_range:
-      start: 0x08000000
-      end: 0x08078000
+      start: 0x8000000
+      end: 0x8078000
     page_size: 0x100
     erased_byte_value: 0x39
-    program_page_timeout: 5000
-    erase_sector_timeout: 10000
+    program_page_timeout: 1000
+    erase_sector_timeout: 2000
     sectors:
     - size: 0x1000
-      address: 0x0
+      address: 0x8000000
   cores:
-  - main
+  - v3f_coprocessor
