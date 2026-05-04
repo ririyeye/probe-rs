@@ -18,6 +18,7 @@ variants:
       start: 0x8000000
       end: 0x8078000
     cores:
+    - v3f_coprocessor
     - main
     access:
       boot: true
@@ -58,6 +59,7 @@ variants:
       start: 0x8000000
       end: 0x8078000
     cores:
+    - v3f_coprocessor
     - main
     access:
       boot: true
@@ -92,6 +94,7 @@ variants:
       start: 0x8000000
       end: 0x8078000
     cores:
+    - v3f_coprocessor
     - main
     access:
       boot: true
@@ -120,12 +123,12 @@ flash_algorithms:
   description: Flash algorithm for CH32H41x series (QingKe-V3F core) -- EXPERIMENTAL, testing V3F theory
   default: true
   instructions: twUKIIPFJS6xzUERBsYixCbCKoSXAAAA54CgHR3ttyQCQIhItwUACKKVE2UlAIjIDwAwA8zIDwAwA4hIE2UFBIjIDwAwA5cAAADngIAaEeWMSPWZjMgPADADskAiRJJEQQGCgAVFgoBBEQbGIsQmwrcECiADxSQuMoQJxZcAAADngIAUBUV9FI1FI4GkLmNwtAi3JQJAN8Wt3jcGCiATBfXuCMIVZTcGZ0UTBRWADwAwA4jBN5XvzRMGNhITBbWaDwAwA9DBDwAwA8jBDwAwA9DRDwAwA8jRDwAwA4hJIWYTBgYIaY4Bxq1lTY0hqAFFEwYQA9DFtwUKIAVGDwAwAyOBxS6yQCJEkkRBAYKANwUKIBMFBSk3BgogEwYGKJMFUAqXAAAA54AgEAERBs4izCbKSshOxlLEroS3BQogg8UlLqXBMoQqiZcAAADngGAKMem3KQJAToYISrcFAAgumRNlFQAIyg8AMAMFSqHEiUUmhWPjtAAJRYNFBABjhkQBA0YUACIG0Y0qlImMIxC5AA8AMAOXAAAA54CgBQkJedURoAVF8kBiRNJEQkmySSJKBWGCgAFFToYMSvmZDMoPADADzbe3BQogA8UlLhnNAUU3JgJAFEohZxMHBwjZjhTKDwAwAyOBBS6CgAVFgoA3BgD2fRa3JQJADwAwA8hFk3YVAJHGBQZt+oVlTY2CgBN2BQEZ4gFFgoBBRtDFDwAwA4KAAaABEQbOIswAECMipP4jJLT+EwVE/oVFIyak/iMoxP4jGrT+EwXE/pcAAADngID9c3JjXG1haW4ucnMAAAByAgogCwAAAB8AAAABAAAAVGhpcyBicmFuY2ggY2FuIG9ubHkgYmUgcmVhY2hlZCBpZiB0aGUgaG9zdCBsaWJyYXJ5IHNlbnQgYW4gdW5rbm93biBmdW5jdGlvbiBjb2RlLgAA
-  load_address: 0x200a0020
+  load_address: 0x20100020
   pc_init: 0x68
   pc_uninit: 0x1c4
   pc_program_page: 0x12a
   pc_erase_sector: 0x0
-  data_section_offset: 0x200a02e4
+  data_section_offset: 0x201002e4
   flash_properties:
     address_range:
       start: 0x8000000
@@ -136,6 +139,7 @@ flash_algorithms:
     erase_sector_timeout: 2000
     sectors:
     - size: 0x1000
-      address: 0x8000000
+      address: 0x0
   cores:
   - v3f_coprocessor
+  - main
