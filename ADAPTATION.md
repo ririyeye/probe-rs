@@ -315,6 +315,95 @@ CNF=00=通用推挽输出，CNF=10=复用功能输出。
 
 ---
 
+## 十一、CH32H417 参考手册 Flash 寄存器标注 (RM V1.7)
+
+来源: `CH32H417RM.PDF`
+
+### 系统架构 — 第 1 章 图 1-1 (PDF 第 2 页)
+
+```
+V5F: I-Code Bus ──→ FLASH CTRL ──→ Flash Memory
+     D-Code Bus ──→ FLASH CTRL
+
+V3F: System Bus ──→ MUX ──→ FLASH CTRL   ← V3F 无直连 I/D-Code!
+```
+
+**结论**: V3F 只能通过系统总线间接访问 flash，不能触发半字写自动编程。
+
+### 46.4 Flash 寄存器 (PDF 第 862–868 页)
+
+| 地址 | 寄存器 | PDF 页 | 节 |
+|------|--------|:------:|----|
+| 0x40022000 | **FLASH_ACTLR** | 862 | §46.4.1 |
+| 0x40022004 | FLASH_KEYR | 863 | §46.4.2 |
+| 0x40022008 | FLASH_OBKEYR | 863 | §46.4.3 |
+| 0x4002200C | **FLASH_STATR** | **864** | **§46.4.4** |
+| 0x40022010 | **FLASH_CTLR** | **865–866** | **§46.4.5** |
+| 0x40022014 | FLASH_ADDR | 867 | §46.4.6 |
+| 0x40022024 | FLASH_MODEKEYR | 868 | §46.4.9 |
+| 0x4002202C | FLASH_CFGR0 | 868 | §46.4.11 |
+
+### FLASH_ACTLR 关键位 (PDF 第 862 页)
+
+| 位 | 名称 | 说明 |
+|:--:|------|------|
+| 15 | FLASH_ST | Flash 状态 (RO) |
+| 14 | FLASH_READY | Flash 就绪 (RO) |
+| 11 | FLASH_RD_MD | 读模式选择 (RW) |
+| **7** | **EHMOD** | **增强模式** (RW): 0=普通 (需 RSENACT=1), 1=增强 |
+| 6 | ENHANCE_STATUS | 增强状态: 0=普通, 1=增强 |
+| [1:0] | SCK_CFG | 时钟配置: 00=HCLK, 01=HCLK/2, 10=HCLK/4 |
+
+### FLASH_STATR 关键位 (PDF 第 864 页, §46.4.4)
+
+| 位 | 名称 | 类型 | 说明 |
+|:--:|------|:----:|------|
+| **5** | **EOP** | RW1Z | 操作完成标志, 写 1 清零 |
+| **4** | **WRPRTERR** | RW1Z | 写保护错误, 写 1 清零 |
+| **1** | **WRBSY** | **RO** | **写忙** (FTPG 模式用) |
+| **0** | **BSY** | **RO** | **忙** (标准 PG / 擦除用) |
+
+### FLASH_CTLR 关键位 (PDF 第 865–866 页, §46.4.5)
+
+| 位 | 名称 | 类型 | 说明 |
+|:--:|------|:----:|------|
+| **22** | **RSENACT** | **WO** | **读敏感放大器使能**。EHMOD=0 时必须为 1。WO 意味着每次 RMW 写入都会将其清零！ |
+| 21 | PGSTRT | WO | 页编程启动 |
+| **18** | **BER** | WO | 批量擦除 (DBMODE=1: 8KB, DBMODE=0: 4KB) |
+| **16** | **FTPG** | RW | 快速编程 (32-bit 字写入, 每页 ≤64 字, 等 WRBSY) |
+| 15 | FLOCK | RW1 | Flash 锁定 (通过 MODEKEYR 解锁) |
+| 7 | LOCK | RW1 | 编程锁定 (通过 KEYR 解锁) |
+| 6 | STRT | WO | 启动擦除操作 |
+| **2** | **PER** | RW | 页擦除 (DBMODE=1: 8KB, DBMODE=0: 4KB) |
+| **1** | **PG** | RW | **标准编程** (半字写, 等 BSY) |
+
+### 46.5 操作序列 (PDF 第 869–871 页)
+
+| 节 | PDF 页 | 内容 | 流程图 |
+|----|:------:|------|:------:|
+| §46.5.2 | 869 | **解锁流程**: KEYR(KEY1→KEY2) → MODEKEYR(KEY1→KEY2) | — |
+| **§46.5.3** | **869** | **标准编程**: PG=1 → 写半字 → 等 BSY=0 → 检查 EOP/WRPRTERR | **图 46-1** |
+| §46.5.4 | 870 | **页擦除**: PER=1 → 写 ADDR → STRT=1 → 等 BSY=0 → 检查 EOP | **图 46-2** |
+| §46.5.5 | 871 | **FLOCK 解锁**: MODEKEYR(KEY1→KEY2) | — |
+| **§46.5.6** | **871** | **FTPG 快速编程**: FTPG=1 → 写 32-bit 字 → 等 **WRBSY**=0 → 每页 ≤64 字 → FTPG=0 → 等 BSY=0 → 检查 EOP | — |
+| §46.5.7 | 871 | **BER 批量擦除**: BER=1 → 写 ADDR → STRT=1 → 等 BSY=0 → 检查 EOP | — |
+
+### 擦除值确认 (PDF 第 870 页)
+
+```
+"-0xe339e339-0xe339-0x39 0xe3"
+```
+- 32-bit LE 字: `0xe339e339` (读回值)
+- 实际存储字节: **0x39** ← 确认!
+
+### Path A 不可用的硬件根因总结
+
+1. **V5F (hart 1)**: Debug 模式 (DM active) 锁定 FLASH 控制器, BSY 始终为 0
+2. **V3F (hart 0)**: 只能通过 APB 操作 FLASH_CTLR 寄存器 (擦除可用), 但无 D-Code 总线直连 flash — 半字写无法触发自动编程
+3. **RSENACT (WO bit)**: 任何 CTLR 的 read-modify-write 都会清零 RSENACT, 需每次显式置 1 (即使 V5F debug 锁定解除也不够)
+
+---
+
 ## 六、参考
 
 - wlink: https://github.com/ch32-rs/wlink (CH32H417 chip_id `0xC6`, flash_op 618B)
@@ -322,3 +411,4 @@ CNF=00=通用推挽输出，CNF=10=复用功能输出。
 - nanoCH32H417: https://github.com/wuxx/nanoCH32H417 (官方实验项目)
 - CH32V307 target: `probe-rs/targets/CH32V3_Series.yaml`
 - RISC-V Debug Spec: https://github.com/riscv/riscv-debug-spec
+- CH32H417 RM V1.7: `CH32H417RM.PDF` (第 862–871 页, §46.4–46.5)
