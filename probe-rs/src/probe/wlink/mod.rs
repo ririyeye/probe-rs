@@ -505,7 +505,14 @@ impl WchLink {
         self.dmi_op_write(0x10, 0x00000001)?;
         // Trigger ndmreset (core reset via debug module)
         self.dmi_op_write(0x10, 0x00000003)?;
-        // Acknowledge havereset, keep dmactive
+        // Hold reset for a few ms so it propagates through the chip
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        // Release ndmreset, keep dmactive (core comes out of reset)
+        self.dmi_op_write(0x10, 0x00000001)?;
+        // Give the debug module time to re-initialise after ndmreset.
+        // Reading dmstatus too early results in DMI timeouts.
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        // Acknowledge havereset
         self.dmi_op_write(0x10, 0x10000001)?;
         Ok(())
     }

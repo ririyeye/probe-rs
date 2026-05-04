@@ -1015,6 +1015,38 @@ impl<'state> RiscvCommunicationInterface<'state> {
             }
         }
 
+        // Clear the step bit in DCSR before resuming.  Some targets
+        // (e.g. CH32H417 via WCH-LinkE) enter debug mode with step=1
+        // set at the hardware level.  Without this the core only
+        // executes a single instruction after each resume.
+        //
+        // We are inside halted_access so the core is already halted —
+        // read_csr / write_csr are safe to call here (they use a
+        // nested halted_access that sees the core is already halted).
+        //
+        // This must run *before* the was_running check because the core
+        // may enter halted_access already halted (e.g. from a previous
+        // single-step trap), and we must clear step regardless.
+        match self.read_csr(0x7b0) {
+            Ok(raw) => {
+                let mut dcsr = Dcsr(raw as u32);
+                if dcsr.step() {
+                    tracing::debug!(
+                        "Clearing stale step bit in DCSR (was {:#010x})",
+                        raw
+                    );
+                    dcsr.set_step(false);
+                    let _ = self.write_csr(0x7b0, u64::from(dcsr.0));
+                }
+            }
+            Err(e) => {
+                tracing::debug!(
+                    "Could not read DCSR to clear step bit: {e}. \
+                     Continuing anyway."
+                );
+            }
+        }
+
         if was_running {
             self.resume_core()?;
         }

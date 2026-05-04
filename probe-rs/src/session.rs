@@ -183,7 +183,9 @@ impl Session {
             Self::attach_jtag(probe, target, attach_method, permissions, cores)?
         };
 
-        session.clear_all_hw_breakpoints()?;
+        if let Err(e) = session.clear_all_hw_breakpoints() {
+            tracing::warn!("Could not clear all hardware breakpoints during attach: {:?}", e);
+        }
 
         Ok(session)
     }
@@ -928,6 +930,12 @@ impl Session {
         }
 
         Ok(true)
+    }
+
+    /// Returns true if the probe handled flash operations (erase/program)
+    /// via built-in firmware commands and the target is already running.
+    pub fn is_probe_assisted(&self) -> bool {
+        self.probe_assisted_done
     }
 
     /// Try to read flash memory via the probe's built-in commands.
