@@ -941,6 +941,13 @@ impl<'state> RiscvCommunicationInterface<'state> {
     ) -> Result<R, RiscvError> {
         let was_running = self.halt_with_previous(Duration::from_millis(100))?;
 
+        // Clear any stale cmderr from a previous abstract command.
+        // Some targets (e.g. WCH-LinkE) may have a leftover error
+        // from earlier cleanup that poisons subsequent operations.
+        if !self.state.xlen_64 {
+            self.write_dm_register(Abstractcs(0x700))?;
+        }
+
         // If requested, force the program buffer privilege level to machine mode
         // so that memory accesses bypass the MMU and use physical addresses.
         //
