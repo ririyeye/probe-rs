@@ -944,8 +944,17 @@ impl<'state> RiscvCommunicationInterface<'state> {
         // Clear any stale cmderr from a previous abstract command.
         // Some targets (e.g. WCH-LinkE) may have a leftover error
         // from earlier cleanup that poisons subsequent operations.
-        if !self.state.xlen_64 {
-            self.write_dm_register(Abstractcs(0x700))?;
+        // Per RISC-V Debug Spec: writing the current cmderr value
+        // back to the field clears it to 0; writing a different
+        // value sets cmderr to that value.
+        {
+            let abstractcs = self.read_dm_register::<Abstractcs>()?;
+            let cmderr = abstractcs.cmderr();
+            if cmderr != 0 {
+                let mut clear = Abstractcs(0);
+                clear.set_cmderr(cmderr);
+                self.write_dm_register(clear)?;
+            }
         }
 
         // If requested, force the program buffer privilege level to machine mode

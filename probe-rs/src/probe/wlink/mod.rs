@@ -501,19 +501,25 @@ impl WchLink {
     /// Reset the target via DMI ndmreset and let it run.
     /// This is the proper reset sequence for RISC-V targets after flashing.
     pub fn reset_and_run(&mut self) -> Result<(), DebugProbeError> {
+        // Select all harts (hasel=1, hartsel=all-ones) so ndmreset resets
+        // the entire chip regardless of which hart is the boot core.
+        // CH32H417 has V5F at hart 1, V3F at hart 0 — resetting only
+        // hart 0 would leave the boot core stuck.
+        let all_harts = 0x04000000 | 0x03FF0000; // hasel=1, hartsel=0x3FF
+
         // Clear haltreq, keep dmactive
-        self.dmi_op_write(0x10, 0x00000001)?;
+        self.dmi_op_write(0x10, 0x00000001 | all_harts)?;
         // Trigger ndmreset (core reset via debug module)
-        self.dmi_op_write(0x10, 0x00000003)?;
+        self.dmi_op_write(0x10, 0x00000003 | all_harts)?;
         // Hold reset for a few ms so it propagates through the chip
         std::thread::sleep(std::time::Duration::from_millis(10));
         // Release ndmreset, keep dmactive (core comes out of reset)
-        self.dmi_op_write(0x10, 0x00000001)?;
+        self.dmi_op_write(0x10, 0x00000001 | all_harts)?;
         // Give the debug module time to re-initialise after ndmreset.
         // Reading dmstatus too early results in DMI timeouts.
         std::thread::sleep(std::time::Duration::from_millis(50));
         // Acknowledge havereset
-        self.dmi_op_write(0x10, 0x10000001)?;
+        self.dmi_op_write(0x10, 0x10000001 | all_harts)?;
         Ok(())
     }
 
