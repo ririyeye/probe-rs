@@ -45,9 +45,9 @@ variants:
       start: 0x20100000
       end: 0x20180000
     cores:
+    - main
     - v3f_coprocessor
-  flash_algorithms:
-  - ch32h41x-flash-algo
+  flash_algorithms: []
 - name: CH32H415
   cores:
   - name: main
@@ -81,8 +81,7 @@ variants:
       end: 0x20100000
     cores:
     - main
-  flash_algorithms:
-  - ch32h41x-flash-algo
+  flash_algorithms: []
 - name: CH32H416
   cores:
   - name: main
@@ -116,30 +115,5 @@ variants:
       end: 0x20100000
     cores:
     - main
-  flash_algorithms:
-  - ch32h41x-flash-algo
-flash_algorithms:
-- name: ch32h41x-flash-algo
-  description: Flash algorithm for CH32H41x series (QingKe-V3F core) -- EXPERIMENTAL, testing V3F theory
-  default: true
-  instructions: twUQIIPFpS+xzUERBsYixCbCKoSXAAAA54BAHx3ttyQCQIhItwUACKKVE2UlAIjIDwAwA8zIDwAwA4hIE2UFBIjIDwAwA5cAAADngCAcEeWMSPWZjMgPADADskAiRJJEQQGCgAVFgoBBEQbGIsQmwrcEECADxaQvMoQJxZcAAADngCAWBUV9FI1FI42kLmNwtAi3JQJAN8Wt3jcGCiATBfXuCMIVZTcGZ0UTBRWADwAwA4jBN5XvzRMGNhITBbWaDwAwA9DBDwAwA8jBDwAwA9DRDwAwA8jRDwAwA4hJIWYTBgYIaY4Bxq1lTY0hqAFFEwYQA9DFtwUQIAVGDwAwAyONxS6yQCJEkkRBAYKANwUQIBMFhSo3BhAgEwaGKZMFUAqXAAAA54DAEUERBsYixCbCSsCuhLcFECCDxaUvvc0yiSqElwAAAOeAQAwl7QFGtyUCQIhJtwYACDaUBUgTZRUAiMk3BwD2DwAwA30XrcCJRyaFY+P0AAlFg0cJAGOGBAGDRhkAogbVjyqZiYwzBcQAIxD1AA8AMAO6hw8AMAPIRZN2JQCBxoUH7fsRqJN2BQEJBs3eQUbQxTmoBUUZoIllTY2yQCJEkkQCSUEBgoABRZBJeZqQyQ8AMAPlt7cFECADxaUvGc0BRTcmAkAUSiFnEwcHCNmOFMoPADADI40FLoKABUWCgDcGAPZ9FrclAkAPADADyEWTdhUAkcYFBm36hWVNjYKAE3YFARniAUWCgEFG0MUPADADgoABoAERBs4izAAQIyKk/iMktP4TBUT+hUUjJqT+IyjE/iMatP4TBcT+lwAAAOeAgP1zcmNcbWFpbi5ycwCMAhAgCwAAACAAAAABAAAAVGhpcyBicmFuY2ggY2FuIG9ubHkgYmUgcmVhY2hlZCBpZiB0aGUgaG9zdCBsaWJyYXJ5IHNlbnQgYW4gdW5rbm93biBmdW5jdGlvbiBjb2RlLgAA
-  load_address: 0x20100020
-  pc_init: 0x68
-  pc_uninit: 0x1de
-  pc_program_page: 0x12a
-  pc_erase_sector: 0x0
-  data_section_offset: 0x201002fc
-  flash_properties:
-    address_range:
-      start: 0x8000000
-      end: 0x8078000
-    page_size: 0x100
-    erased_byte_value: 0x39
-    program_page_timeout: 1000
-    erase_sector_timeout: 2000
-    sectors:
-    - size: 0x1000
-      address: 0x0
-  cores:
-  - v3f_coprocessor
-  - main
+  flash_algorithms: []
+flash_algorithms: []
